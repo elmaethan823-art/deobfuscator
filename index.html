@@ -49,11 +49,43 @@
             color: var(--text-muted);
         }
 
+        /* Drag & Drop Upload Zone */
+        .upload-zone {
+            margin-top: 15px;
+            border: 2px dashed var(--border);
+            border-radius: 6px;
+            background-color: rgba(23, 26, 38, 0.4);
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: var(--accent);
+            background-color: rgba(0, 230, 118, 0.05);
+        }
+
+        .upload-zone p {
+            margin: 0;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .upload-zone span {
+            color: var(--accent);
+            text-decoration: underline;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
         .main-container {
             display: flex;
             flex: 1;
             gap: 20px;
-            margin-top: 20px;
+            margin-top: 15px;
             min-height: 0;
         }
 
@@ -93,7 +125,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 10px 0;
+            padding: 15px 0 5px 0;
         }
 
         .btn {
@@ -113,10 +145,6 @@
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(0, 230, 118, 0.5);
         }
-
-        .btn:active {
-            transform: translateY(0);
-        }
     </style>
 </head>
 <body>
@@ -128,10 +156,15 @@
         </div>
     </header>
 
+    <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+        <p>Drag & drop your <strong>.lua</strong> or <strong>.txt</strong> script here, or <span>browse files</span></p>
+        <input type="file" id="fileInput" accept=".lua,.txt" onchange="handleFileSelect(event)">
+    </div>
+
     <div class="main-container">
         <div class="panel">
-            <div class="panel-header">Obfuscated Luau / Lua Input</div>
-            <textarea id="inputCode" placeholder="Paste your obfuscated script here..."></textarea>
+            <div class="panel-header" id="inputHeader">Obfuscated Luau / Lua Input</div>
+            <textarea id="inputCode" placeholder="Paste code or drop a script file here..."></textarea>
         </div>
 
         <div class="panel">
@@ -148,14 +181,12 @@
         local fengari = require("fengari")
         local js = require("js")
 
-        -- Simple structural pattern deobfuscator core (LuaXen optimization concept)
-        -- Targets string patterns, basic hex/decimal sequences, and inline calculations
         function deobfuscate(input)
             if not input or input == "" then return "-- No input provided." end
             
             local result = input
 
-            -- Pass 1: Resolve decimal escape sequences like \32\101 to characters
+            -- Pass 1: Resolve decimal escape sequences (\32\101)
             result = result:gsub("\\(%d%d?%d?)", function(d)
                 local num = tonumber(d)
                 if num and num >= 32 and num <= 126 then
@@ -164,45 +195,95 @@
                 return "\\" .. d
             end)
 
-            -- Pass 2: Resolve hex configurations like \x41 to A
+            -- Pass 2: Resolve hex configurations (\x41)
             result = result:gsub("\\x(%x%x)", function(h)
                 return string.char(tonumber(h, 16))
             end)
 
-            -- Pass 3: Clean basic proxy string tables commonly injected by wrappers
-            -- (e.g., matching common array indexes like strings[1])
+            -- Pass 3: Clean basic string.char instances
             result = result:gsub("string%.char%s*%((%d+)%)", function(n)
                 return "'" .. string.char(tonumber(n)) .. "'"
-            </style>
+            end)
 
-            -- Pass 4: Clean up boilerplates & common junk comments
+            -- Pass 4: Strip block comments
             result = result:gsub("%-%-%[[^\n]*", "") 
             
             return "-- [Light Hub Deobfuscator Output]\n\n" .. result
         end
 
-        -- Export the main Lua method to the browser context
         js.global.luaDeobfuscate = deobfuscate
     </script>
 
     <script>
+        const dropZone = document.getElementById('dropZone');
+        const inputCode = document.getElementById('inputCode');
+        const inputHeader = document.getElementById('inputHeader');
+
+        // Manage Drag and Drop CSS visual status
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+            }, false);
+        });
+
+        // Handle file drop event
+        dropZone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files.length > 0) {
+                processFile(files[0]);
+            }
+        });
+
+        // Handle classic browser file selection window
+        function handleFileSelect(event) {
+            const files = event.target.files;
+            if (files.length > 0) {
+                processFile(files[0]);
+            }
+        }
+
+        // Read file contents safely using FileReader API
+        function processFile(file) {
+            const name = file.name;
+            const ext = name.split('.').pop().toLowerCase();
+            
+            if (ext !== 'lua' && ext !== 'txt') {
+                alert('Invalid file format. Please upload a .lua or .txt file.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                inputCode.value = e.target.result;
+                inputHeader.textContent = `Obfuscated Input: ${name}`;
+            };
+            reader.readAsText(file);
+        }
+
+        // Run Deobfuscation
         function runDeobfuscator() {
-            const input = document.getElementById("inputCode").value;
+            const input = inputCode.value;
             const outputBox = document.getElementById("outputCode");
 
             try {
-                // Safely invokes the active Lua routine stored in JavaScript namespace via Fengari
                 if (typeof window.luaDeobfuscate === "function") {
-                    const cleanCode = window.luaDeobfuscate(input);
-                    outputBox.value = cleanCode;
+                    outputBox.value = window.luaDeobfuscate(input);
                 } else {
-                    outputBox.value = "-- Error: Lua virtual machine initialization failed.";
+                    outputBox.value = "-- Error: Lua virtual engine failed to load.";
                 }
             } catch (err) {
                 outputBox.value = `-- Processing Error:\n${err.message}`;
             }
         }
     </script>
-
 </body>
 </html>
