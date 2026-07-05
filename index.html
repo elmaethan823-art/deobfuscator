@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C# Web Deobfuscator</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+            background: #1e1e1e;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            width: 400px;
+        }
+        .upload-zone {
+            border: 2px dashed #00bcd4;
+            padding: 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .upload-zone:hover {
+            background: #262626;
+        }
+        button {
+            margin-top: 20px;
+            background-color: #00bcd4;
+            color: black;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:hover { background-color: #008c9e; }
+        #status { margin-top: 15px; color: #aaa; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>C# .NET Deobfuscator</h2>
+    <p>Upload your obfuscated assembly (.exe / .dll)</p>
+    
+    <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
+        <span id="dropText">Click or Drag File Here</span>
+        <input type="file" id="fileInput" accept=".dll,.exe" style="display:none">
+    </div>
+    
+    <button
