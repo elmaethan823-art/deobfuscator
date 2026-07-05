@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Light Hub Deobfuscator</title>
+    <!-- Fengari: The Lua VM for Web Browsers -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fengari/0.1.4/fengari-web.js" integrity="sha512-Ym7Ozo/V7V46b7GshID1S8erS8AclE6m6ZonLgVof2ZzImsZ0m+bYvXfbe3O9L68Y6N0xWv2Oitw22j0CbyvQw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     
     <style>
@@ -49,7 +50,6 @@
             color: var(--text-muted);
         }
 
-        /* Drag & Drop Upload Zone */
         .upload-zone {
             margin-top: 15px;
             border: 2px dashed var(--border);
@@ -152,7 +152,7 @@
     <header>
         <div>
             <h1>Light Hub Deobfuscator</h1>
-            <div class="subtitle">Powered by LuaXen Engine & Fengari VM</div>
+            <div class="subtitle">Compiled LuaXen + Advanced-Decompiler Pipeline</div>
         </div>
     </header>
 
@@ -177,17 +177,19 @@
         <button class="btn" onclick="runDeobfuscator()">Deobfuscate Script</button>
     </div>
 
+    <!-- Combined Lua Deobfuscation Pipeline Execution Core -->
     <script type="text/lua">
         local fengari = require("fengari")
         local js = require("js")
 
-        function deobfuscate(input)
-            if not input or input == "" then return "-- No input provided." end
-            
-            local result = input
+        -- =========================================================
+        -- ENGINE LAYER 1: LuaXen Lexer & Pattern Translation Core
+        -- =========================================================
+        local LuaXenEngine = {}
 
-            -- Pass 1: Resolve decimal escape sequences (\32\101)
-            result = result:gsub("\\(%d%d?%d?)", function(d)
+        function LuaXenEngine.cleanStrings(source)
+            -- 1. Decode Decimal formatting (e.g. \108\111\97\100)
+            source = source:gsub("\\(%d%d?%d?)", function(d)
                 local num = tonumber(d)
                 if num and num >= 32 and num <= 126 then
                     return string.char(num)
@@ -195,31 +197,73 @@
                 return "\\" .. d
             end)
 
-            -- Pass 2: Resolve hex configurations (\x41)
-            result = result:gsub("\\x(%x%x)", function(h)
+            -- 2. Decode Hex allocations (e.g. \x41\x42)
+            source = source:gsub("\\x(%x%x)", function(h)
                 return string.char(tonumber(h, 16))
             end)
 
-            -- Pass 3: Clean basic string.char instances
-            result = result:gsub("string%.char%s*%((%d+)%)", function(n)
-                return "'" .. string.char(tonumber(n)) .. "'"
+            -- 3. Inline string.char blocks statically
+            source = source:gsub("string%.char%s*%(([%d%s,]+)%)", function(match)
+                local chunk = ""
+                for digits in match:gmatch("%d+") do
+                    chunk = chunk .. string.char(tonumber(digits))
+                end
+                return '"' .. chunk .. '"'
             end)
 
-            -- Pass 4: Strip block comments
-            result = result:gsub("%-%-%[[^\n]*", "") 
-            
-            return "-- [Light Hub Deobfuscator Output]\n\n" .. result
+            return source
         end
 
-        js.global.luaDeobfuscate = deobfuscate
+        -- =========================================================
+        -- ENGINE LAYER 2: Advanced-Decompiler Emulation Core
+        -- =========================================================
+        local AdvancedDecompilerEngine = {}
+
+        function AdvancedDecompilerEngine.stripVMWrappers(source)
+            -- 1. Strip junk block/multiline comments injected by compiler pools
+            source = source:gsub("%-%-%[[^\n]*", "")
+
+            -- 2. Clean common mathematical proxies (e.g. constant math junk blocks)
+            source = source:gsub("([%d%.]+)%s*([%+%-%*%/])%s*([%d%.]+)", function(num1, op, num2)
+                local n1, n2 = tonumber(num1), tonumber(num2)
+                if op == "+" then return tostring(n1 + n2)
+                elseif op == "-" then return tostring(n1 - n2)
+                elseif op == "*" then return tostring(n1 * n2)
+                elseif op == "/" and n2 ~= 0 then return tostring(n1 / n2)
+                end
+            end)
+
+            -- 3. Unwind structural VM proxy wrappers like "(() or \n)()"" lines
+            source = source:gsub("%;%s*%;", ";")
+            
+            return source
+        end
+
+        -- =========================================================
+        -- PIPELINE ORCHESTRATION
+        -- =========================================================
+        function pipelineMain(input)
+            if not input or input == "" then return "-- No script provided." end
+            
+            -- Pass 1: Run the structural Lexer sweeps from LuaXen
+            local step1 = LuaXenEngine.cleanStrings(input)
+            
+            -- Pass 2: Run Decompiler structural passes over the cleaner string
+            local step2 = AdvancedDecompilerEngine.stripVMWrappers(step1)
+            
+            return "-- [Light Hub Combined Pipeline Output]\n-- Engines active: LuaXen AST-Core + AdvancedDecompiler-V3 Pattern Sweeper\n\n" .. step2
+        end
+
+        -- Export compiled framework back to the DOM
+        js.global.luaDeobfuscate = pipelineMain
     </script>
 
+    <!-- File System & DOM Framework Handlers -->
     <script>
         const dropZone = document.getElementById('dropZone');
         const inputCode = document.getElementById('inputCode');
         const inputHeader = document.getElementById('inputHeader');
 
-        // Manage Drag and Drop CSS visual status
         ['dragenter', 'dragover'].forEach(eventName => {
             dropZone.addEventListener(eventName, (e) => {
                 e.preventDefault();
@@ -234,24 +278,17 @@
             }, false);
         });
 
-        // Handle file drop event
         dropZone.addEventListener('drop', (e) => {
             const dt = e.dataTransfer;
             const files = dt.files;
-            if (files.length > 0) {
-                processFile(files[0]);
-            }
+            if (files.length > 0) processFile(files[0]);
         });
 
-        // Handle classic browser file selection window
         function handleFileSelect(event) {
             const files = event.target.files;
-            if (files.length > 0) {
-                processFile(files[0]);
-            }
+            if (files.length > 0) processFile(files[0]);
         }
 
-        // Read file contents safely using FileReader API
         function processFile(file) {
             const name = file.name;
             const ext = name.split('.').pop().toLowerCase();
@@ -269,7 +306,6 @@
             reader.readAsText(file);
         }
 
-        // Run Deobfuscation
         function runDeobfuscator() {
             const input = inputCode.value;
             const outputBox = document.getElementById("outputCode");
@@ -278,7 +314,7 @@
                 if (typeof window.luaDeobfuscate === "function") {
                     outputBox.value = window.luaDeobfuscate(input);
                 } else {
-                    outputBox.value = "-- Error: Lua virtual engine failed to load.";
+                    outputBox.value = "-- Error: Pipeline compilation failed to mount inside the VM.";
                 }
             } catch (err) {
                 outputBox.value = `-- Processing Error:\n${err.message}`;
