@@ -3,61 +3,206 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>C# Web Deobfuscator</title>
+    <title>Light Hub Deobfuscator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fengari/0.1.4/fengari-web.js" integrity="sha512-Ym7Ozo/V7V46b7GshID1S8erS8AclE6m6ZonLgVof2ZzImsZ0m+bYvXfbe3O9L68Y6N0xWv2Oitw22j0CbyvQw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    
     <style>
+        :root {
+            --bg-main: #0f111a;
+            --bg-panel: #171a26;
+            --accent: #00e676;
+            --text-main: #e3e6ed;
+            --text-muted: #787f99;
+            --border: #23283b;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #121212;
-            color: #ffffff;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: var(--accent);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .subtitle {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .main-container {
+            display: flex;
+            flex: 1;
+            gap: 20px;
+            margin-top: 20px;
+            min-height: 0;
+        }
+
+        .panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            background-color: rgba(0,0,0,0.2);
+            padding: 10px 15px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-muted);
+        }
+
+        textarea {
+            flex: 1;
+            background-color: transparent;
+            border: none;
+            color: #f8f8f2;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            padding: 15px;
+            resize: none;
+            outline: none;
+            line-height: 1.5;
+        }
+
+        .actions {
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
+            padding: 10px 0;
         }
-        .container {
-            text-align: center;
-            background: #1e1e1e;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-            width: 400px;
-        }
-        .upload-zone {
-            border: 2px dashed #00bcd4;
-            padding: 30px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-        .upload-zone:hover {
-            background: #262626;
-        }
-        button {
-            margin-top: 20px;
-            background-color: #00bcd4;
-            color: black;
+
+        .btn {
+            background-color: var(--accent);
+            color: #000;
             border: none;
-            padding: 10px 20px;
-            font-size: 16px;
+            padding: 12px 35px;
+            font-size: 1rem;
             font-weight: bold;
-            border-radius: 5px;
+            border-radius: 4px;
             cursor: pointer;
-            width: 100%;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 14px rgba(0, 230, 118, 0.3);
         }
-        button:hover { background-color: #008c9e; }
-        #status { margin-top: 15px; color: #aaa; }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 230, 118, 0.5);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>C# .NET Deobfuscator</h2>
-    <p>Upload your obfuscated assembly (.exe / .dll)</p>
-    
-    <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
-        <span id="dropText">Click or Drag File Here</span>
-        <input type="file" id="fileInput" accept=".dll,.exe" style="display:none">
+    <header>
+        <div>
+            <h1>Light Hub Deobfuscator</h1>
+            <div class="subtitle">Powered by LuaXen Engine & Fengari VM</div>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <div class="panel">
+            <div class="panel-header">Obfuscated Luau / Lua Input</div>
+            <textarea id="inputCode" placeholder="Paste your obfuscated script here..."></textarea>
+        </div>
+
+        <div class="panel">
+            <div class="panel-header">Cleaned Code Output</div>
+            <textarea id="outputCode" readonly placeholder="Deobfuscated source will appear here..."></textarea>
+        </div>
     </div>
-    
-    <button
+
+    <div class="actions">
+        <button class="btn" onclick="runDeobfuscator()">Deobfuscate Script</button>
+    </div>
+
+    <script type="text/lua">
+        local fengari = require("fengari")
+        local js = require("js")
+
+        -- Simple structural pattern deobfuscator core (LuaXen optimization concept)
+        -- Targets string patterns, basic hex/decimal sequences, and inline calculations
+        function deobfuscate(input)
+            if not input or input == "" then return "-- No input provided." end
+            
+            local result = input
+
+            -- Pass 1: Resolve decimal escape sequences like \32\101 to characters
+            result = result:gsub("\\(%d%d?%d?)", function(d)
+                local num = tonumber(d)
+                if num and num >= 32 and num <= 126 then
+                    return string.char(num)
+                end
+                return "\\" .. d
+            end)
+
+            -- Pass 2: Resolve hex configurations like \x41 to A
+            result = result:gsub("\\x(%x%x)", function(h)
+                return string.char(tonumber(h, 16))
+            end)
+
+            -- Pass 3: Clean basic proxy string tables commonly injected by wrappers
+            -- (e.g., matching common array indexes like strings[1])
+            result = result:gsub("string%.char%s*%((%d+)%)", function(n)
+                return "'" .. string.char(tonumber(n)) .. "'"
+            </style>
+
+            -- Pass 4: Clean up boilerplates & common junk comments
+            result = result:gsub("%-%-%[[^\n]*", "") 
+            
+            return "-- [Light Hub Deobfuscator Output]\n\n" .. result
+        end
+
+        -- Export the main Lua method to the browser context
+        js.global.luaDeobfuscate = deobfuscate
+    </script>
+
+    <script>
+        function runDeobfuscator() {
+            const input = document.getElementById("inputCode").value;
+            const outputBox = document.getElementById("outputCode");
+
+            try {
+                // Safely invokes the active Lua routine stored in JavaScript namespace via Fengari
+                if (typeof window.luaDeobfuscate === "function") {
+                    const cleanCode = window.luaDeobfuscate(input);
+                    outputBox.value = cleanCode;
+                } else {
+                    outputBox.value = "-- Error: Lua virtual machine initialization failed.";
+                }
+            } catch (err) {
+                outputBox.value = `-- Processing Error:\n${err.message}`;
+            }
+        }
+    </script>
+
+</body>
+</html>
